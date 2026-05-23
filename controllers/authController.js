@@ -1,8 +1,8 @@
 const User = require("../models/userModel");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs"); // keep this for consistency
-const { sendVerificationEmail } = require("../utils/sendmail");
+const bcrypt = require("bcryptjs"); 
+const { sendVerificationEmail } = require("../utils/sendMail");
 
 // Generate JWT token
 const generateToken = (id) => {
