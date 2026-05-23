@@ -4,7 +4,6 @@ const express = require("express");
 const cors = require("cors");
 const path = require('path');
 const fs = require('fs');
-const multer = require('multer');
 
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
@@ -73,3 +72,4 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
+module.exports = app;

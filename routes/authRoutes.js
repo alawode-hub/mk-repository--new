@@ -3,13 +3,13 @@ const { registerUser, loginUser, verifyEmail } = require("../controllers/authCon
 
 const router = express.Router();
 
-// @route   POST /api/auth/register
+// Test route so you can check it in browser
+router.get("/", (req, res) => {
+  res.json({ message: "Auth routes working" });
+});
+
 router.post("/register", registerUser);
-
-// @route   POST /api/auth/login  
 router.post("/login", loginUser);
-
-// @route   GET /api/auth/verify-email
 router.get("/verify-email", verifyEmail);
 
 module.exports = router;

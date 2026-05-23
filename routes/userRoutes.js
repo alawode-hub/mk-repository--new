@@ -9,8 +9,13 @@ const { protect } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-router.post("/register", registerUser); // ← ADD THIS
-router.post("/login", loginUser);       // ← ADD THIS
+// Test route so you can check it in browser
+router.get("/", (req, res) => {
+  res.json({ message: "User routes working" });
+});
+
+router.post("/register", registerUser);
+router.post("/login", loginUser);
 
 router.route("/profile")
  .get(protect, getUserProfile)
