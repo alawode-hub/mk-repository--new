@@ -53,6 +53,7 @@ app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/payment", require("./routes/paymentRoutes"));
 
 // TEST ROUTE
 app.get("/", (req, res) => {
