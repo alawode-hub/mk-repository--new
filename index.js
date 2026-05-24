@@ -19,6 +19,11 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir);
 }
 
+const mediaDir = path.join(__dirname, 'media');
+if (!fs.existsSync(mediaDir)) {
+  fs.mkdirSync(mediaDir);
+}
+
 // DB
 connectDB();
 
@@ -29,7 +34,6 @@ app.use(cors({
       "http://localhost:5173",
       "https://my-frontend-app-beta-six.vercel.app"
     ];
-    // allow all vercel preview URLs
     if (!origin || allowed.includes(origin) || origin.endsWith('.vercel.app')) {
       callback(null, true);
     } else {
@@ -39,13 +43,12 @@ app.use(cors({
   credentials: true
 }));
 
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // STATIC FILES
-app.use("/media", express.static("media"));
-app.use('/uploads', express.static(path.join(__dirname, '/uploads')));
+app.use("/media", express.static(path.join(__dirname, "media")));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ROUTES
 app.use("/api/auth", authRoutes);
@@ -68,7 +71,6 @@ app.use((req, res, next) => {
 // GLOBAL ERROR HANDLER
 app.use((err, req, res, next) => {
   console.error("🔥 SERVER ERROR:", err.stack);
-  
   const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
   res.status(statusCode).json({
     message: err.message,
@@ -77,7 +79,6 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 4000;
-
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
