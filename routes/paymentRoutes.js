@@ -17,6 +17,7 @@ router.post("/initialize", protect, async (req, res) => {
       {
         email,
         amount: amount * 100, // Paystack uses kobo
+        currency: "NGN", // force Naira only
         metadata: { orderId },
         callback_url: `${process.env.FRONTEND_URL}/payment-success`
       },
@@ -28,24 +29,48 @@ router.post("/initialize", protect, async (req, res) => {
       }
     );
 
-    res.json(response.data); // returns authorization_url
+    res.json(response.data);
   } catch (error) {
     res.status(500).json({ message: error.response?.data?.message || "Payment init failed" });
   }
 });
 
-// 2. Verify payment - called by Paystack webhook
+// 2. Verify payment - called by frontend after redirect
+router.get("/verify/:reference", protect, async (req, res) => {
+  try {
+    const { reference } = req.params;
+
+    const response = await axios.get(
+      `https://api.paystack.co/transaction/verify/${reference}`,
+      {
+        headers: {
+          Authorization: `Bearer ${PAYSTACK_SECRET}`,
+        },
+      }
+    );
+
+    if (response.data.status && response.data.status === "success") {
+      res.json({ success: true, data: response.data });
+    } else {
+      res.json({ success: false });
+    }
+  } catch (error) {
+    res.status(500).json({ message: "Verification failed" });
+  }
+});
+
+// 3. Webhook - called by Paystack server
 router.post("/webhook", express.raw({ type: "application/json" }), async (req, res) => {
   const hash = require("crypto")
-    .createHmac("sha512", PAYSTACK_SECRET)
-    .update(JSON.stringify(req.body))
-    .digest("hex");
+   .createHmac("sha512", PAYSTACK_SECRET)
+   .update(req.body)
+   .digest("hex");
 
-  if (hash !== req.headers["x-paystack-signature"]) {
+  if (hash!== req.headers["x-paystack-signature"]) {
     return res.status(400).send("Invalid signature");
   }
 
-  const event = req.body;
+  const event = JSON.parse(req.body.toString());
 
   if (event.event === "charge.success") {
     const orderId = event.data.metadata.orderId;
