@@ -1,14 +1,30 @@
 const Product = require("../models/Product"); 
 
-
-
-// @desc    Get all products
+// @desc    Get all products with filters
 // @route   GET /api/products
 // @access  Public
 const getProducts = async (req, res) => {
   try {
-    const products = await Product.find({}).lean();
+    const { keyword, category } = req.query;
+
+    let filter = {};
+
+    // Search by name or description
+    if (keyword) {
+      filter.$or = [
+        { name: { $regex: keyword, $options: "i" } },
+        { description: { $regex: keyword, $options: "i" } }
+      ];
+    }
+
+    // Filter by category - case insensitive exact match
+    if (category && category.toLowerCase() !== "all products") {
+      filter.category = { $regex: new RegExp(`^${category}$`, "i") };
+    }
+
+    const products = await Product.find(filter).lean();
     res.json(products);
+
   } catch (error) {
     console.error("GET PRODUCTS ERROR:", error);
     res.status(500).json({ message: error.message });
