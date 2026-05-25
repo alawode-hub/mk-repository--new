@@ -10,7 +10,11 @@ const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
 
 // 1. Initialize payment
 router.post("/initialize", protect, async (req, res) => {
-  const { email, amount, orderId } = req.body;
+  const { email, amount, orderId, callback_url } = req.body;
+
+  if (!email || !amount || !orderId) {
+    return res.status(400).json({ message: "Email, amount, and orderId are required" });
+  }
 
   try {
     const response = await axios.post(
@@ -19,8 +23,8 @@ router.post("/initialize", protect, async (req, res) => {
         email,
         amount: amount * 100, // kobo
         currency: "NGN",
-        metadata: { orderId }, // MUST send orderId here
-        callback_url: `${process.env.FRONTEND_URL}/payment/verify` // match frontend route
+        metadata: { orderId },
+        callback_url: callback_url || `${process.env.FRONTEND_URL}/payment/verify`
       },
       {
         headers: {
@@ -32,12 +36,12 @@ router.post("/initialize", protect, async (req, res) => {
 
     res.json(response.data);
   } catch (error) {
-    console.log(error.response?.data);
+    console.log("PAYSTACK INIT ERROR:", error.response?.data || error.message);
     res.status(500).json({ message: error.response?.data?.message || "Payment init failed" });
   }
 });
 
-// 2. Verify payment - UPDATE ORDER HERE TOO
+// 2. Verify payment
 router.get("/verify/:reference", protect, async (req, res) => {
   try {
     const { reference } = req.params;
@@ -49,12 +53,20 @@ router.get("/verify/:reference", protect, async (req, res) => {
       }
     );
 
-    const paymentData = response.data;
+    const paymentData = response.data; // Paystack wraps data here
+
+    if (!paymentData) {
+      return res.json({ success: false, message: "Invalid payment response" });
+    }
 
     if (paymentData.status === "success") {
-      const orderId = paymentData.metadata.orderId;
+      const orderId = paymentData.metadata?.orderId;
 
-      // Update order immediately so user sees it
+      if (!orderId) {
+        return res.status(400).json({ success: false, message: "OrderId missing in metadata" });
+      }
+
+      // Update order immediately
       const order = await Order.findById(orderId);
       if (order && !order.isPaid) {
         order.isPaid = true;
@@ -68,17 +80,17 @@ router.get("/verify/:reference", protect, async (req, res) => {
         await order.save();
       }
 
-      res.json({ success: true, data: paymentData });
+      return res.json({ success: true, data: paymentData });
     } else {
-      res.json({ success: false });
+      return res.json({ success: false, message: "Payment not successful" });
     }
   } catch (error) {
-    console.log(error.response?.data);
+    console.log("PAYSTACK VERIFY ERROR:", error.response?.data || error.message);
     res.status(500).json({ message: "Verification failed" });
   }
 });
 
-// 3. Webhook - backup in case verify fails
+// 3. Webhook - backup
 router.post("/webhook", express.raw({ type: "application/json" }), async (req, res) => {
   const hash = crypto
    .createHmac("sha512", PAYSTACK_SECRET)
@@ -91,21 +103,29 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
 
   const event = JSON.parse(req.body.toString());
 
-  if (event.event === "charge.success") {
-    const orderId = event.data.metadata.orderId;
-    await Order.findByIdAndUpdate(orderId, {
-      isPaid: true,
-      paidAt: Date.now(),
-      paymentResult: {
-        id: event.data.reference,
-        status: event.data.status,
-        update_time: event.data.paid_at,
-        email_address: event.data.customer.email
+  try {
+    if (event.event === "charge.success") {
+      const orderId = event.data.metadata?.orderId;
+      
+      if (orderId) {
+        await Order.findByIdAndUpdate(orderId, {
+          isPaid: true,
+          paidAt: Date.now(),
+          paymentResult: {
+            id: event.data.reference,
+            status: event.data.status,
+            update_time: event.data.paid_at,
+            email_address: event.data.customer.email
+          }
+        });
       }
-    });
-  }
+    }
 
-  res.sendStatus(200);
+    res.sendStatus(200);
+  } catch (err) {
+    console.log("WEBHOOK ERROR:", err);
+    res.sendStatus(500);
+  }
 });
 
 module.exports = router;
