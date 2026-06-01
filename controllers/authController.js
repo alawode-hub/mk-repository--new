@@ -4,7 +4,12 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs"); 
 const { sendVerificationEmail } = require("../utils/sendMail");
 
-// Generate JWT token
+// PASSWORD VALIDATION HELPER
+const validatePassword = (password) => {
+  const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  return regex.test(password);
+};
+
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET || "secretKey", {
     expiresIn: "30d",
@@ -22,24 +27,29 @@ const registerUser = async (req, res) => {
       return res.status(400).json({ message: "Please fill all fields" });
     }
 
+    // STRONG PASSWORD CHECK
+    if (!validatePassword(password)) {
+      return res.status(400).json({ 
+        message: "Password must be 8+ characters with 1 uppercase, 1 lowercase, 1 number & 1 special char @$!%*?&" 
+      });
+    }
+
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    // Generate verification token
     const verificationToken = crypto.randomBytes(32).toString("hex");
 
     const user = await User.create({
       firstName,
       lastName,
       email,
-      password, // pre-save hook in model will hash it
+      password, // pre-save hook will hash it
       verificationToken,
     });
 
     if (user) {
-      // Send verification email
       await sendVerificationEmail(email, verificationToken);
 
       res.status(201).json({
@@ -76,7 +86,6 @@ const loginUser = async (req, res) => {
       return res.status(401).json({ message: "Please verify your email first" });
     }
 
-    // use the method from your model
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
       return res.status(401).json({ message: "Invalid email or password" });
