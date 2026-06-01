@@ -17,7 +17,7 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new Error("Please fill all fields");
   }
 
-  // STRONG PASSWORD CHECKK
+  // STRONG PASSWORD CHECK
   if (!validatePassword(password)) {
     res.status(400);
     throw new Error("Password must be 8+ characters with 1 uppercase, 1 lowercase, 1 number & 1 special char @$!%*?&");
@@ -100,7 +100,8 @@ const updateUserProfile = asyncHandler(async (req, res) => {
   if (user) {
     user.firstName = req.body.firstName || user.firstName;
     user.lastName = req.body.lastName || user.lastName;
-    user.email = req.body.email || user.email;
+    // EMAIL REMOVED - CANNOT BE CHANGED
+    // user.email = req.body.email || user.email;
 
     // PASSWORD UPDATE WITH VALIDATION
     if (req.body.password) {
@@ -118,7 +119,7 @@ const updateUserProfile = asyncHandler(async (req, res) => {
       firstName: updatedUser.firstName,
       lastName: updatedUser.lastName,
       name: updatedUser.name,
-      email: updatedUser.email,
+      email: updatedUser.email, 
       role: updatedUser.role,
       token: generateToken(updatedUser._id),
     });
@@ -128,7 +129,7 @@ const updateUserProfile = asyncHandler(async (req, res) => {
   }
 });
 
-//  PASSWORD CHANGE ROUTE
+// PASSWORD CHANGE ROUTE
 const updateUserPassword = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id);
 
