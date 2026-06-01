@@ -12,6 +12,6 @@ router.route("/myorders")
   .get(protect, getMyOrders);
 
 router.route("/:id")
-  .delete(protect, admin, deleteOrder);
+  .delete(protect, admin, deleteOrder); 
 
 module.exports = router;
