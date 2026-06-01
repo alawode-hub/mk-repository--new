@@ -49,7 +49,7 @@ const createOrder = async (req, res) => {
 const getOrders = async (req, res) => {
   try {
     const orders = await Order.find({})
-      .populate({ path: "user", select: "firstName email", strictPopulate: false })
+      .populate({ path: "user", select: "firstName lastName email", strictPopulate: false })
       .lean();
     res.json(orders);
   } catch (error) {
@@ -66,4 +66,22 @@ const getMyOrders = async (req, res) => {
   }
 };
 
-module.exports = { createOrder, getOrders, getMyOrders };
+// ADMIN: Mark order as delivered
+const updateOrderToDelivered = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (order) {
+      order.isDelivered = true;
+      order.deliveredAt = Date.now();
+      const updatedOrder = await order.save();
+      res.json(updatedOrder);
+    } else {
+      res.status(404).json({ message: "Order not found" });
+    }
+  } catch (error) {
+    console.log("DELIVER ORDER ERROR:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { createOrder, getOrders, getMyOrders, updateOrderToDelivered };

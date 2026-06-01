@@ -4,10 +4,10 @@ const productSchema = mongoose.Schema({
   name: { type: String, required: true },
   description: { type: String, required: true },
   price: { type: Number, required: true },
-  stock: { type: Number, required: true, default: 0 },
-  category: { type: String, required: true }, // "men", "women", "unisex"
-  size: [{ type: String }], // ["S", "M", "L", "XL"]
-  color: [{ type: String }], // ["black", "white", "beige"]
+  countInStock: { type: Number, required: true, default: 0 },
+  category: { type: String, required: true },
+  size: [{ type: String }],
+  color: [{ type: String }],
   image: { type: String, required: true },
 }, { timestamps: true });
 
