@@ -40,41 +40,62 @@ router.post("/initialize", protect, async (req, res) => {
   }
 });
 
-// VERIFY MUST BE PUBLIC - Paystack redirect lose token
+//verify
+
 router.get("/verify/:reference", async (req, res) => {
   try {
     const { reference } = req.params;
 
     const response = await axios.get(
       `https://api.paystack.co/transaction/verify/${reference}`,
-      { headers: { Authorization: `Bearer ${PAYSTACK_SECRET}` } }
+      {
+        headers: {
+          Authorization: `Bearer ${PAYSTACK_SECRET}`
+        }
+      }
     );
 
-    const paymentData = response.data;
+    const paymentData = response.data.data;
 
     if (paymentData.status === "success") {
       const orderId = paymentData.metadata?.orderId;
+
       const order = await Order.findById(orderId);
 
-      if (order &&!order.isPaid) {
+      if (order && !order.isPaid) {
         order.isPaid = true;
         order.paidAt = Date.now();
+
         order.paymentResult = {
           id: paymentData.reference,
           status: paymentData.status,
           update_time: paymentData.paid_at,
           email_address: paymentData.customer.email
         };
+
         await order.save();
       }
 
-      res.json({ success: true, data: paymentData });
-    } else {
-      res.json({ success: false });
+      return res.json({
+        success: true,
+        data: paymentData
+      });
     }
+
+    return res.json({
+      success: false
+    });
+
   } catch (error) {
-    console.log("PAYSTACK VERIFY ERROR:", error.response?.data || error.message);
-    res.status(500).json({ message: "Verification failed" });
+    console.log(
+      "PAYSTACK VERIFY ERROR:",
+      error.response?.data || error.message
+    );
+
+    res.status(500).json({
+      success: false,
+      message: "Verification failed"
+    });
   }
 });
 
