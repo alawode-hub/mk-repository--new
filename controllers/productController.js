@@ -1,5 +1,33 @@
 const Product = require("../models/Product");
 
+// @desc    Fetch all products with filter & search
+// @route   GET /api/products
+// @access  Public
+const getProducts = async (req, res) => {
+  try {
+    const { category, search } = req.query;
+    const query = {};
+
+    // Filter by category if sent
+    if (category && category !== "allproducts") {
+      query.category = { $regex: category, $options: "i" }; // case-insensitive
+    }
+
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+        { category: { $regex: search, $options: "i" } }
+      ];
+    }
+
+    const products = await Product.find(query).sort({ createdAt: -1 });
+    res.json(products);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // @desc Create product
 // @route POST /api/products
 // @access Admin
@@ -12,7 +40,7 @@ const createProduct = async (req, res) => {
       price,
       description,
       image,
-      countInStock, // make sure na this one
+      countInStock,
       category,
       size,
       color,
@@ -40,7 +68,7 @@ const updateProduct = async (req, res) => {
       product.price = price;
       product.description = description;
       product.image = image;
-      product.countInStock = countInStock; // make sure na this one
+      product.countInStock = countInStock;
       product.category = category;
       product.size = size;
       product.color = color;
@@ -52,15 +80,6 @@ const updateProduct = async (req, res) => {
     }
   } catch (error) {
     res.status(400).json({ message: error.message });
-  }
-};
-
-const getProducts = async (req, res) => {
-  try {
-    const products = await Product.find({});
-    res.json(products);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
   }
 };
 
@@ -92,4 +111,3 @@ const deleteProduct = async (req, res) => {
 };
 
 module.exports = { createProduct, updateProduct, getProducts, getProductById, deleteProduct };
-
