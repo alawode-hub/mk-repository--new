@@ -7,10 +7,11 @@ const crypto = require("crypto");
 const router = express.Router();
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
 
+// Initialize needs user - keep protect
 router.post("/initialize", protect, async (req, res) => {
   const { email, amount, orderId, callback_url } = req.body;
 
-  if (!email || !amount || !orderId) {
+  if (!email ||!amount ||!orderId) {
     return res.status(400).json({ message: "Email, amount, and orderId are required" });
   }
 
@@ -39,7 +40,8 @@ router.post("/initialize", protect, async (req, res) => {
   }
 });
 
-router.get("/verify/:reference", protect, async (req, res) => {
+// VERIFY MUST BE PUBLIC - Paystack redirect lose token
+router.get("/verify/:reference", async (req, res) => {
   try {
     const { reference } = req.params;
 
@@ -53,8 +55,8 @@ router.get("/verify/:reference", protect, async (req, res) => {
     if (paymentData.status === "success") {
       const orderId = paymentData.metadata?.orderId;
       const order = await Order.findById(orderId);
-      
-      if (order && !order.isPaid) {
+
+      if (order &&!order.isPaid) {
         order.isPaid = true;
         order.paidAt = Date.now();
         order.paymentResult = {
@@ -76,10 +78,11 @@ router.get("/verify/:reference", protect, async (req, res) => {
   }
 });
 
+// Webhook needs signature verification - keep as is
 router.post("/webhook", express.raw({ type: "application/json" }), async (req, res) => {
   const hash = crypto.createHmac("sha512", PAYSTACK_SECRET).update(req.body).digest("hex");
 
-  if (hash !== req.headers["x-paystack-signature"]) {
+  if (hash!== req.headers["x-paystack-signature"]) {
     return res.status(400).send("Invalid signature");
   }
 
