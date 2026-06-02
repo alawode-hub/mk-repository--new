@@ -9,6 +9,18 @@ const productSchema = mongoose.Schema({
   size: [{ type: String }],
   color: [{ type: String }],
   image: { type: String, required: true },
+  
+  
+  status: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'approved' 
+  },
+  submittedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: false 
+  }
 }, { timestamps: true });
 
 const Product = mongoose.model("Product", productSchema);
