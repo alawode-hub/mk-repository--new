@@ -1,13 +1,12 @@
 const Product = require("../models/Product");
 const asyncHandler = require("express-async-handler");
 
-// @desc    Fetch all products with filter & search - SHOW APPROVED + OLD PRODUCTS
+// @desc    Fetch all products - APPROVED + OLD PRODUCTS
 // @route   GET /api/products
 // @access  Public
 const getProducts = asyncHandler(async (req, res) => {
   const { category, search } = req.query;
   
-  // Show products that are approved OR old products without status field
   const query = { 
     $or: [
       { status: 'approved' },
@@ -15,12 +14,10 @@ const getProducts = asyncHandler(async (req, res) => {
     ]
   };
 
-  // Filter by category if sent
   if (category && category !== "allproducts") {
     query.category = { $regex: category, $options: "i" };
   }
 
-  // Search by name, description, category
   if (search) {
     query.$and = [
       query,
@@ -38,57 +35,39 @@ const getProducts = asyncHandler(async (req, res) => {
   res.json(products);
 });
 
-// @desc    Fetch single product
-// @route   GET /api/products/:id
-// @access  Public
 const getProductById = asyncHandler(async (req, res) => {
   const product = await Product.findById(req.params.id);
-  
-  if (product) {
-    res.json(product);
-  } else {
+  if (product) res.json(product);
+  else {
     res.status(404);
     throw new Error("Product not found");
   }
 });
 
-// @desc    Admin: Create new product
+// @desc    Admin create product
 // @route   POST /api/products
 // @access  Private/Admin
 const createProduct = asyncHandler(async (req, res) => {
-  const { name, description, price, image, category, stock } = req.body;
-
+  const { name, description, price, image, category, countInStock } = req.body;
   const product = new Product({
-    name,
-    description,
-    price,
-    image,
-    category,
-    stock,
-    status: "approved" // Admin products auto-approved
+    name, description, price, image, category, countInStock,
+    status: "approved"
   });
-
   const createdProduct = await product.save();
   res.status(201).json(createdProduct);
 });
 
-// @desc    Admin: Update product
-// @route   PUT /api/products/:id
-// @access  Private/Admin
 const updateProduct = asyncHandler(async (req, res) => {
-  const { name, description, price, image, category, stock, status } = req.body;
-
+  const { name, description, price, image, category, countInStock, status } = req.body;
   const product = await Product.findById(req.params.id);
-
   if (product) {
     product.name = name || product.name;
     product.description = description || product.description;
     product.price = price || product.price;
     product.image = image || product.image;
     product.category = category || product.category;
-    product.stock = stock !== undefined ? stock : product.stock;
+    product.countInStock = countInStock !== undefined ? countInStock : product.countInStock;
     product.status = status || product.status;
-
     const updatedProduct = await product.save();
     res.json(updatedProduct);
   } else {
@@ -97,12 +76,8 @@ const updateProduct = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc    Admin: Delete product
-// @route   DELETE /api/products/:id
-// @access  Private/Admin
 const deleteProduct = asyncHandler(async (req, res) => {
   const product = await Product.findById(req.params.id);
-
   if (product) {
     await product.deleteOne();
     res.json({ message: "Product removed" });
@@ -112,28 +87,21 @@ const deleteProduct = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc    User: Submit product for approval
+// @desc    User submit product
 // @route   POST /api/products/submit
 // @access  Private
 const submitProduct = asyncHandler(async (req, res) => {
-  const { name, description, price, image, category, stock } = req.body;
-
+  const { name, description, price, image, category, countInStock, size, color } = req.body;
   const product = new Product({
-    name,
-    description,
-    price,
-    image,
-    category,
-    stock,
-    seller: req.user._id,
-    status: "pending" // Wait for admin approval
+    name, description, price, image, category, countInStock, size, color,
+    seller: req.user._id, // <-- save who submitted
+    status: "pending"
   });
-
   const createdProduct = await product.save();
   res.status(201).json({ message: "Product submitted for approval", product: createdProduct });
 });
 
-// @desc    Admin: Get pending products
+// @desc    Admin get pending
 // @route   GET /api/products/pending
 // @access  Private/Admin
 const getPendingProducts = asyncHandler(async (req, res) => {
@@ -141,12 +109,11 @@ const getPendingProducts = asyncHandler(async (req, res) => {
   res.json(products);
 });
 
-// @desc    Admin: Approve product
+// @desc    Admin approve
 // @route   PUT /api/products/:id/approve
 // @access  Private/Admin
 const approveProduct = asyncHandler(async (req, res) => {
   const product = await Product.findById(req.params.id);
-
   if (product) {
     product.status = "approved";
     const approvedProduct = await product.save();

@@ -10,17 +10,17 @@ const productSchema = mongoose.Schema({
   color: [{ type: String }],
   image: { type: String, required: true },
   
+  seller: { // <-- change submittedBy to seller
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: false 
+  },
   
   status: {
     type: String,
     enum: ['pending', 'approved', 'rejected'],
     default: 'approved' 
   },
-  submittedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: false 
-  }
 }, { timestamps: true });
 
 const Product = mongoose.model("Product", productSchema);
